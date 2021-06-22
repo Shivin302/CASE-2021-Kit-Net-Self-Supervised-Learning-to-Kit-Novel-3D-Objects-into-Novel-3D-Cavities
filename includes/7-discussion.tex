@@ -1,0 +1,11 @@
+\section{Discussion and Future Work}
+\label{sec:discussion}
+We present Kit-Net, a framework that uses self-supervised deep learning in simulation to kit novel 3D objects into novel 3D cavities. Results in simulation experiments suggest that Kit-Net can kit unseen objects with unknown geometries into a prismatic target in less than 5 controller steps with a median percent fit of 99\,\%.
+%Results in physical experiments suggest that Kit-Net can kit three novel 3D objects into novel 3D cavities 63\,\% of the time, outperforming a baseline that is limited to $SE(2)$ transformations and  succeeds only 18\,\% of the time. [LRBT!!! give Form2Fit first, THEN Kit-Net -KG 3/18]
+In physical experiments kitting novel 3D objects into novel 3D cavities, Kit-Net is able to successfully kit novel objects 63\,\% of the time while a 2D baseline which only considers $SE(2)$ transforms only succeeds 18\,\% of the time.
+%\textbf{Limitations and Future Work: }
+%In this paper we do not consider suction grasps that would require the object to be regrasped (grasps that prevent both rotational alignment and insertion); however, this functionality may be necessary when grasping objects from a heap when $R^g$ exceeds 60\degree.
+In future work, we will work to improve performance by using the predicted error from Kit-Net
+%after an iteration time-out to detect the need for a regrasp. The object could then
+to regrasp the object in a new stable pose~\cite{tournassoud1987regrasping,dafle2014extrinsic,danielczuk2020exploratory} before reattempting the kitting task, study Kit-Net's performance with other depth sensors, and apply Kit-Net to kit objects that are initially grasped from a heap \cite{murali20206,danielczuk2020x}.
+% In future work, we will explore techniques to reduce the rotation prediction error for rotations with larger angles.

@@ -1,0 +1,11 @@
+\section{Physical Experiments}
+\label{sec:physical-experiments}
+Our previous experiments studied the effectiveness of Kit-Net for insertion tasks involving prismatic cavities. However, as shown in Fig.~\ref{fig:clamshell-objects} and Fig.~\ref{fig:clamshell-cavities}, many physical kitting tasks involve non-prismatic cavities. In this section, we study how Kit-Net can be used to kit objects in physical trials using depth images of the types of cavities shown in Fig.~\ref{fig:clamshell-cavities}. We call these \emph{conformal cavities}, as they ``conform" to some degree to the object shape. 
+
+In these experiments we use a quaternion prediction network trained to predict the quaternion that will rotate a simulated depth image of an object to another simulated depth image of the same object in a different pose. We propose two possible methods for applying this trained network to kitting. Our first method is designed to work well with the clamshell cavities shown in Fig.~\ref{fig:clamshell-cavities}. Rather than image the hole of the cavity, we define a \emph{convex conformal cavity} to be the depth image of the inverted cavity. To obtain these depth images, we flip the cavity so the hole is pointing down and take a depth image of the positive mass of the cavity. The left image in Fig.~\ref{fig:clamshell-cavities} shows examples of these convex conformal cavities. Our second method works with a \emph{concave conformal cavity}, like that shown in Fig.~\ref{fig:mug-cavity-2} and the right image in Fig.~\ref{fig:clamshell-cavities}, that are formed as impressions into a surface. These types of cavities cannot simply be flipped upside down to obtain a depth image of their shape. Instead, we take a depth image of the actual cavity (where the cavity has negative mass) and rotate it 180\degree~about its principal axis.
+
+We discuss the results for applying Kit-Net to novel convex conformal cavities in Section~\ref{subsubsec:real-positive} and to novel concave conformal cavities Section~\ref{subsubsec:real-negative}.
+For the physical kitting experiments we measure success using a binary success metric for insertion by visually inspecting whether or not the object is completely contained in the target cavity.
+
+\input{includes/6.1-positive-cavity}
+\input{includes/6.2-negative-cavity}

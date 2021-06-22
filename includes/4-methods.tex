@@ -1,0 +1,86 @@
+% \section{Method}
+\section{Kit-Net Framework}
+\label{sec:method}
+%\JI{Proposal: include summary of \cite{CASE_Orienting} in first subsection, then describe extensions in second subsection.} \SD{Done?}
+We present Kit-Net, a framework that first reorients the object into a pose that can be successful kit in a desired cavity, and then translates and inserts the object into the cavity. We do this by learning to estimate ${_s}T^g \in SO(3)$, a relative transformation consisting of rotation ${_s}R^g$ and translation ${_s}\hat{t}^g$, which transforms the object from $T^s$ to $T^g$ for some $T^g \in \mathcal{G}$. The overall approach is to (1) compute an estimate of ${_s}R^g$, denoted ${_s}\hat{R}^g$, given only image observations $I^s$ and $I^k$, (2) iteratively reorient the object according to  ${_s}\hat{R}^g$ until $\hat{R}^g \in \mathcal{G}$, and (3) translate the object by ${_s}\hat{t}^g$, an estimate of the translation between the start and goal object translations, such that it lies in the kitting cavity.
+
+We first discuss preliminaries (Section~\ref{subsec:prelims}) and then describe the key new ideas in training Kit-Net (Section~\ref{subsec:kit-net-training}) which make it possible to design a controller to rotate and translate an object to fit it in a cavity (Section~\ref{subsec:kit-net-alg}).
+
+% \subsection{Prior Work: Aligning Quaternion Rotations in 3D}
+\subsection{Preliminaries: Estimating Quaternion Rotations in 3D}
+\label{subsec:prelims}
+\citet{CASE_Orienting} presented a self-supervised deep-learning method to align
+two 3D objects.
+%an object to a goal rotation. 
+The method takes two depth images as input: $I^s$, an image of the object in its current orientation $R^s$ and $I^g$, an image of the same object in its desired goal orientation $R^g$. It trains a deep neural network $f_\theta:\mathbb{R}^{H\times W},\mathbb{R}^{H\times W} \rightarrow SO(3)$
+to estimate the rotation (parametrized by a quaternion) between the pair of images $(I^s, I^g)$.
+% that acts on the depth image pair learns how to estimate rotations (parametrized by a quaternion) between two poses of an unknown object. 
+Then, using a proportional controller, it iteratively rotates the object to minimize the estimated rotational difference. This controller applies $\eta{_s}\hat{R}^g$ until
+% there have been $50$ iterations or
+the network predicts that the current object rotation $R^s$ is within $\delta = 0.5\degree$~of $R^g$, or until the controller reaches an iteration limit. The tunable constant $\eta$ is the Spherical-Linear intERPolation (slerp) factor describing the proportion of $\hat{R}^g$ that the controller will apply to $O$. \citeauthor{CASE_Orienting} use a small slerp value of $\eta=0.2$ and a maximum iteration limit of 50 rotations.
+
+For training,~\citeauthor{CASE_Orienting} generate a dataset consisting 200 pairs of synthetic depth images for each of the 698 training objects with random relative rotations, for a total of 139,600 pairs. To account for parallax effects, each pair of images were generated from a fixed translation relative to the camera.
+\citeauthor{CASE_Orienting} propose three loss functions to train $f_\theta$: a cosine loss, a symmetry-resilient loss, and a hybrid of the two, with the hybrid loss outperforming the first two. Note that \citeauthor{CASE_Orienting} do not consider cavity insertion tasks, which is complicated by the need to reason about the translations and required alignment with a cavity. 
+%, which may differ significantly in geometry from the object being inserted.  [<- "future work" -KG]
+
+Kit-Net improves on \citeauthor{CASE_Orienting} by (1) introducing dataset augmentations to make the controller more robust, (2) using a suction cup gripper to minimize object occlusion during rotation, and (3) incorporating 3D translations into the controller to enable kitting. We discuss these contributions in the following sections.
+
+\subsection{Kit-Net Dataset Generation, Augmentation, and Training}
+\label{subsec:kit-net-training}
+% \JI{TODO: we need to update this section to make fewer repeated references to [5].  If the previous section is sufficiently filled in, then we can also focus on describing the updates from the previous section.} \SD{Done?}
+Kit-Net %extends \citet{CASE_Orienting} to 
+trains a neural network $f_\theta$ with a self-supervised objective by taking as input pairs of depth images $(I^s, I^g)$ and estimating ${_s}\hat{R}^g$ from image pair $(I^s, I^g)$. As in \citeauthor{CASE_Orienting}, $f_\theta$ encodes each depth image into a length 1024 embedding, concatenates the embeddings, and passes the result through two fully connected layers to estimate a quaternion representation of the rotational difference between the object poses. 
+
+\subsubsection{Initial Dataset Generation}
+In contrast to \citeauthor{CASE_Orienting}, we are interested in kitting, rather than just reorienting an object in the robot gripper. Thus, in this paper we focus on two types of kitting cavities: prismatic cavities (Fig.~\ref{fig:prism-task}) and conformal cavities (Fig.~\ref{fig:clamshell-cavities}).
+We generate a separate dataset for each type of cavity and train a separate network for each dataset. 
+To generate both datasets, we use the set of 698 meshes from \citet{mahler2019learning}. For each mesh, we generate 512 depth image pairs, for a total of 357,376 pairs. To do this we first generate a pair of rotations $(R^s, R^g)$, where $R^s$ is generated by applying one rotation sampled uniformly at random from $SO(3)$ to $O$, and $R^g$ is generated by applying a random rotation with rotation angle less than 30 degrees onto $R^s$. To generate the conformal cavity dataset, we then obtain a pair of depth images $(I^s, I^g)$ by rendering the object in rotations $R^s$ and $R^g$ from an overhead view. The pair is labeled with the ground truth rotation difference between the images. To generate the prismatic cavity dataset we follow the same process as above, except we fit and render a prismatic box around the rotated object (Fig.~\ref{fig:prism-task-eval-objects}) and render the depth image pairs (Fig.~\ref{fig:prism-task}). This process results in two datasets, each containing 357,376 total labeled image pairs $(I^s, I^g)$ with ground truth rotation labels ${_s}R^g$. 
+
+\subsubsection{Data Augmentation}
+We found that simply training a network directly on the datasets described above results in poor generalization to depth images from the physical system, which contain sensor noise, object occlusions from both the object itself and the arm or gripper, and 3D object translations within the image. To address these three points, we introduce a set of dataset augmentations to ease network transfer from simulated to real depth images. 
+%To increase network robustness to sensor noise and occlusions, [omit as we haven't quantified this increase -KG 3/18]
+To simulate noise and occlusion in training, we randomly zero out 1\,\% of the pixels in each depth image and add rectangular cuts of width 30\,\% of zero pixels to the image, respectively.
+%To increase robustness to object translations, [omit as we haven't quantified this increase -KG 3/18]
+To simulate translations in training,
+we translate the object across a range of 10\,cm in the $x$, $y$, and $z$ axes with respect to the camera in the simulated images. We also crop the images at sizes from 5\,\% to 25\,\% greater than the object size with center points offset from the object's centroid by 5 pixels to simulate
+%These translations allow the trained network to be robust to
+$I^s, I^g$ pairs generated from objects and cavities outside the direct overhead view for the kitting task. 
+
+% consider a wide range of object translations \KG{$\leftarrow$ Details!!} within the image and render and crop images with varying sizes and centers \KG{$\leftarrow$ Details!!} to make the network more robust to images from the physical system \KG{$\leftarrow$ Details!!}. Specifically, we augment the dataset images with randomly generated zero pixels and rectangular cuts 
+% \SD{I have not explicitly tried performance without this, but I have observed self-occlusion on the real images that I believe the random cuts help make the network robust to} 
+% to make the network more robust to occlusions \KG{why if suction grasps?} and sensor noise present in depth images taken from a real depth camera. We also render objects in a wider range \KG{\#s} of $x$, $y$, and $z$ coordinates, in an effort to allow the network to be robust to $I^s, I^g$ pairs generated from objects and cavities outside the direct overhead view for the kitting task. 
+
+\subsubsection{Training} We adopt the network architecture from \citet{Wen2020se3TrackNetD6}, as it is designed to be trained in simulation and demonstrates state-of-the-art performance on object tracking~\cite{DengPoseRBPF} by regressing the relative pose between two images. We use the hybrid quaternion loss proposed by \citet{CASE_Orienting}. The network is trained with the Adam optimizer with learning rate 0.002, decaying by a factor of 0.9 every 5 epochs with an L2 regularization penalty of $10^{-9}$.
+
+\subsection{Kit-Net Suction Gripper}
+Kit-Net uses an industrial unicontact suction gripper from \citet{mahler2017suction} to grasp the object for kitting. In contrast, \citeauthor{CASE_Orienting} used a parallel jaw gripper. We find the suction gripper to be better suited for kitting because it reduces gripper occlusions % when the object is in hand  [removed -KG 3/18]
+and enables the robot to position the object directly inside the kitting cavity.
+
+\subsection{Kit-Net Controller} \label{subsec:kit-net-alg}
+The Kit-Net controller consists of two stages: rotation and translation.
+
+\subsubsection{Rotation}
+Kit-Net first re-orients an object using the depth image of the current object pose $I^s$ and a depth image of the goal cavity pose $I^g$. In preliminary experiments, we found the rotation parameters used by \citet{CASE_Orienting} (Section~\ref{subsec:prelims}) to be overly conservative. Thus, to speed up the alignment process, we use a larger slerp factor of $\eta=0.8$. If the network predicts a rotation difference of less than $\delta=5\degree$, then we assume that the object is close enough to the required pose for kitting into the cavity and terminate the rotation controller. Because of the larger slerp value, Kit-Net is able to quickly reorient the object, thus we terminate the rotation controller after a maximum of 8 sequential rotations (8 iterations). 
+
+\subsubsection{Translation}
+Once the rotational alignment is computed, Kit-Net computes a 2D translation to move the object directly over the target cavity, and then lowers the object and releases it into the cavity. To calculate the 2D translation, we perform centroid matching between the final depth image $I^s$ of the object after rotation and the depth image of the cavity $I^g$.
+% to find ${_s}\hat{t}^g$, which we combine to determine ${_s}\hat{T}^g$.
+%To compute the translation, we calculate the difference of the 2D centroid of the cropped depth images of the object from the cavity (See~\ref{fig:Kit-Net-to-cavity}).
+%We found in experiments that this approach was sufficiently robust to noise and outliers in the depth images and crops to achieve high accuracy.
+%We conjecture that other methods such as least squares on a small set of corresponding points could lead to higher accuracy. [<-- future work -KG]
+
+
+
+% \subsection{Controller}
+% \label{subsec:reorientation-controller}
+
+% As predictions from the trained network empirically have errors proportional to the actual angle difference, a single rotation prediction may not reorient an object correctly.  We thus implement a proportional controller to incrementally reorient the object. This controller is defined in Algorithm~\ref{alg:controller}.
+% Let $I^{(t)}$ denote an overhead image of the object at some time $t$. Given a goal image $I^g$, the controller uses $f_\theta$ to predict a rotation to align the orientation corresponding to $I^{(t)}$ ($R^t$) with that corresponding to $I^g$ ($R^g$).  In each iteration, it rotates the object in the direction of the prediction by a tunable step-size parameter $\eta \in (0,1]$, and stops once the predicted angle is small or it reaches an iteration limit. %We do this by using the learned rotation estimation network $f_\theta$ to define a proportional controller (P-controller) as follows:
+
+% \subsection{Aligning Translation}
+
+
+% \subsection{Regrasp Analysis}
+
+% \todo{If implemented... describe what happens if the suction grasp is on the wrong side, preventing both rotational alignment and insertion.}
+% \DB{Even if we just show we can detect the need for a regrasp, I think that would be nice to show. We can then say that future work could use something like the BORGES algorithm [cite] to regrasp the object in a different stable pose.}

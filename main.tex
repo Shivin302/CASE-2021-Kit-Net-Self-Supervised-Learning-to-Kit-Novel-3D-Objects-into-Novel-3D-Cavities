@@ -1,0 +1,115 @@
+\documentclass[letterpaper, 10 pt, conference]{ieeeconf}  % Comment this line out if you need a4paper
+
+%\documentclass[a4paper, 10pt, conference]{ieeeconf}      % Use this line for a4 paper
+
+\IEEEoverridecommandlockouts                              % This command is only needed if you want to use the \thanks command
+
+\overrideIEEEmargins                                      % Needed to meet printer requirements.
+% *** CITATION PACKAGES ***
+\usepackage[backend=biber,
+            hyperref=true,
+            url=false,
+            isbn=false,
+            doi=false,
+            backref=false,
+            style=ieee,
+            natbib=true,%compatibility aliases
+            mincitenames=1,
+            maxcitenames=1,
+            citestyle=numeric-comp,
+            sorting=nyt,%none
+            block=none]{biblatex}
+        
+\renewcommand{\bibfont}{\small}
+\addbibresource{references.bib}
+
+%In case you encounter the following error:
+%Error 1010 The PDF file may be corrupt (unable to open PDF file) OR
+%Error 1000 An error occurred while parsing a contents stream. Unable to analyze the PDF file.
+%This is a known problem with pdfLaTeX conversion filter. The file cannot be opened with acrobat reader
+%Please use one of the alternatives below to circumvent this error by uncommenting one or the other
+%\pdfobjcompresslevel=0
+%\pdfminorversion=4
+
+% See the \addtolength command later in the file to balance the column lengths
+% on the last page of the document
+
+%=======INPUT SETUP FILES=======
+\input{includes/0-preamble}
+% \input{0-macros.tex}
+\input{includes/0-defs}
+
+%\usepackage{titling}
+\usepackage[colorinlistoftodos]{todonotes}
+
+%=======U S E R  D E F I N E D  M A C R O S=======
+% \newcommand{\probName}{mechanical search\xspace}
+% \newcommand{\lowLevelName}{methods\xspace}
+% \newcommand{\algoAbbr}{MS-TRC\xspace}
+% \newcommand{\algo}{target retrieval in clutter\xspace}
+% \newcommand{\Algo}{Target Retrieval in Clutter\xspace}
+
+%=======U S E R  D E F I N E D  M A C R O S=======
+% \newcommand{\probName}{mechanical search\xspace}
+% \newcommand{\lowLevelName}{methods\xspace}
+% \newcommand{\algoAbbr}{MS-TRC\xspace}
+% \newcommand{\algo}{target retrieval in clutter\xspace}
+% \newcommand{\Algo}{Target Retrieval in Clutter\xspace}
+
+%=======DOC INFO=======
+\title{\LARGE \bf
+Kit-Net: Self-Supervised Learning to Kit \\Novel 3D Objects into Novel 3D Cavities
+}
+
+\author{Shivin Devgon$^{1}$, Jeffrey Ichnowski$^{1}$, Michael Danielczuk$^{1}$, Daniel S. Brown$^{1}$, Ashwin Balakrishna$^{1}$, \\
+Shirin Joshi$^{2}$, Eduardo M. C. Rocha$^{2}$, Eugen Solowjow$^{2}$, Ken Goldberg$^{1}$ % <-this % stops a space
+\thanks{$^{1}$The AUTOLAB at the University of California, Berkeley. %}%
+%\thanks{
+$^{2}$Siemens Research Lab, Berkeley, CA.
+{\tt\small
+  \{shivin302, jeffi, mdanielczuk, dsbrown, ashwin\_balakrishna\}\allowbreak @berkeley.edu,
+  \{shirin.joshi, eduardo.moura\_cirilo\_rocha,
+  eugen.solowjow\}\allowbreak @siemens.com,
+  goldberg@berkeley.edu }
+}%
+}
+
+\begin{document}
+
+\maketitle
+% \thispagestyle{empty}
+% \pagestyle{empty}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{abstract}
+In industrial part kitting, 3D objects are inserted into cavities for transportation or subsequent assembly. Kitting is a critical step in industrial transportation and assembly, as kitting can decrease downstream processing and handling times and enable lower storage and shipping costs.
+% Adapting to varying object and cavity shapes, kitting can decrease  
+We present Kit-Net, a framework for kitting previously unseen 3D objects into cavities given depth images of both the target cavity and an object held by a gripper in an unknown initial orientation. Kit-Net uses self-supervised deep learning and data-augmentation to train a CNN to robustly estimate 3D rotations between objects and matching concave or convex cavities using a large dataset of simulated depth images pairs. Kit-Net then uses the trained CNN to implement a controller to orient and position novel objects for insertion into novel prismatic and conformal 3D cavities. Experiments in simulation suggest that Kit-Net can orient objects to have a 98.9\,\% average intersection volume between the object mesh and that of the target cavity. Physical experiments with 3 industrial objects suggest that Kit-Net can successfully insert objects into cavities with a 63\,\% success rate while a baseline which restricts itself to 2D rotations succeeds only 18\,\% of the time. 
+
+\end{abstract}
+
+\input{includes/1-introduction}
+\input{includes/2-related-work}
+\input{includes/3-problem-statement}
+\input{includes/4-methods}
+\input{includes/5-simulation}
+\input{includes/6-physical-experiments}
+\input{includes/7-discussion}
+% only need acks in cam ready
+\input{includes/8-acknowledgement}
+
+
+% \addtolength{\textheight}{-12cm}   % This command serves to balance the column lengths % on the last page of the document manually. It shortens % the textheight of the last page by a suitable amount. % This command does not take effect until the next page % so it should come on the page before the last. Make % sure that you do not shorten the textheight too much.
+
+%\balance
+%=====================================
+\renewcommand*{\bibfont}{\footnotesize}
+% \renewcommand{\baselinestretch}{0.9} %only do this for refs if crunched for space
+\printbibliography %for biblatex -- doesnt work with natbib
+%=====================================
+% only for generating the appendices.
+% Include appendices in pdf
+% \clearpage
+% \input{includes/8-appendix}
+
+\end{document}

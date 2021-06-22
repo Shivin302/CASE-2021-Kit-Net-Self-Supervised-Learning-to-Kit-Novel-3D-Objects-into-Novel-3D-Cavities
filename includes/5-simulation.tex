@@ -1,0 +1,51 @@
+\section{Simulation Experiments}
+\label{sec:experiments}
+We first discuss metrics to evaluate performance in Section~\ref{subsec:metrics}. We then introduce a baseline algorithm (Section~\ref{subsec:baseline}) with which to compare Kit-Net and present experimental results in Section~\ref{subsec:results}. In experiments, we first evaluate Kit-Net on re-orienting novel objects with unknown geometry into a target prismatic box in simulation (Section~\ref{subsubsec:prismatic}).
+\subsection{Baselines}
+\label{subsec:baseline}
+\subsubsection{Random Baseline}
+We also compare Kit-Net with a baseline that applies a randomly sampled rotation but with the correct rotation angle to evaluate how important precise reorientation is for successful kitting.
+
+\subsubsection{2D Baseline}
+To evaluate the importance of estimating 3D rotations for successful kitting, we compare Kit-Net to a baseline inspired by %Transporter Nets~\cite{zeng2020transporter} and
+Form2Fit~\cite{Zakka2020Form2FitLS}, which only considers 2D rotations when orienting objects for kitting. The baseline (1) aligns the centroids of the point clouds of the object and the cavity and (2) searches over all possible $z$-axis rotations at a 1\textdegree~discretization to find the rotation that minimizes Chamfer distance between the centroid-aligned point clouds.
+
+\subsection{Metrics}
+\label{subsec:metrics}
+\subsubsection{Object Eccentricity}
+We categorize test objects by their \emph{eccentricity}, which provides a measure of kitting difficulty. This categorization
+% is grounded in the intuition [<-- lol]
+follows the intuition
+that objects that are more elongated along certain dimensions than others have a smaller set of acceptable orientations in which they can be successfully kit into a cavity. Let the eccentricity $\varepsilon$ of a 3D object be $\varepsilon = A - 1$, where $A$ is the aspect ratio (ratio of longest side to shortest side) of the minimum volume bounding box of the object. This definition generalizes the 2D definition of eccentricity from \citet{GoldbergEccentricity2000} to 3D. Under this definition, a sphere has $\varepsilon = 0$, and if one axis is elongated by a factor $p$, then the resulting ellipsoid has eccentricity $p-1$. This definition is also consistent with the intuition provided earlier, as a sphere is entirely rotationally symmetric, and thus does not require any reorientation for kitting. By contrast, the ellipsoid will require reorientation to ensure that its longer side is aligned to a region with sufficient space in the cavity. Thus, we use objects with high eccentricity in evaluating both Kit-Net and the baselines, as these objects pose the greatest challenge for kitting in practice.
+
+\subsection{Results}
+\label{subsec:results}
+When evaluating Kit-Net in simulation, we have access to ground-truth object and cavity geometry. Thus, we evaluate kitting performance using the following percent fit metric:
+\begin{equation}\label{eq:percent-fit}
+\hat{f}(I^s, I^g, \hat{{_s}T^g}) = \frac{1}{N} \sum_{i=1}^N \mathbf{1}_{(p_i \in K)},
+\end{equation}
+where we sample $N$ points within the object volume at configuration $\hat{{_s}R^g}R^s$ (after the target object has been rotated for insertion) and count the proportion of sampled points that also lie within cavity. This metric can be efficiently computed using ray tracing and effectively estimates how much of the object fits inside the target mesh after the predicted rotation.
+%This metric takes an average of 0.2\,s to compute with ray tracing on CPU \MD{which CPU? how many trials?} \MD{time depends on num rays and object geometry right?}. 
+In experiments, we use $N=10000$ sampled points to evaluate $\hat{f}$. Assuming the true percent fit metric is $f$, a 95\,\% confidence interval for $f$ is $\hat{f} \pm 1.96\sqrt{\frac{\hat{f}(1-\hat{f})}{10000}}$. For example, if $\hat{f} = 0.99$, then $f$ lies between $(0.988, 0.992)$ with 95\,\% confidence. 
+
+
+
+%\subsection{Results}
+
+
+\input{includes/5.1-prismatic-cavity}
+%\input{includes/5.2-positive-cavity}
+%\input{includes/5.3-negative-cavity}
+
+% \begin{figure}
+%   \centering
+%   \includegraphics[width=0.48\textwidth]{figures/toy-clamshells.jpg}
+%   \caption{Packaged toys used for kitting cavity insertion task. We bought these at Target, and observe that these objects require accurate orientation in order to insert the object into the cavity. \todo{Proper lighting, top down, maybe have kitting next to object.}}
+%   \label{fig:toy-clamshells}
+% \end{figure}
+
+% \subsection{Clay Embedding}
+% \label{subsec:clay}
+% We can create our own impression of an object onto modelling clay, and use this impression as a target for insertion. We can take a depth image of the cavity and negate it in order to get a positive depth image of an object target. We then orient and insert the object in a similar way as \ref{subsec:real-positive}.
+
+
